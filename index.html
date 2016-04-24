@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <style type="text/css">
+
+    body {
+      font: 14px/1.5em sans-serif;
+      color: #0f3c4b;
+      background: #e5edf1;
+      padding: 1em;
+      text-align: center;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .boxes {
+      display: flex;
+    }
+
+    .box {
+      background-color: #c8dadf;
+      outline: 2px dashed #92b0b3;
+      outline-offset: -10px;
+      text-align: center;
+      padding: 64px;
+      flex: 1 0;
+      margin: 1em;
+      border-radius: 0.5em;
+    }
+
+    .box.is-dragover {
+      outline-offset: -20px;
+      outline-color: #c8dadf;
+      background-color: #fff;
+    }
+
+    .box input {
+      width: 0.1px;
+      height: 0.1px;
+      opacity: 0;
+      overflow: hidden;
+      position: absolute;
+      z-index: -1;
+    }
+
+    .convert {
+      font-size: 2em;
+    }
+
+    .progress-container {
+      background: #c8dadf;
+      height: 48px;
+      margin: 1em;
+    }
+
+    .progress {
+      height: 100%;
+      background: #0f3c4b;
+      color: #e5edf1;
+      display: flex;
+      align-content: center;
+      justify-content: center;
+    }
+
+    .percent {
+      padding: 1em 0;
+    }
+
+    </style>
+  </head>
+  <body>
+    <h1>Converter</h1>
+    <div class="boxes">
+      <div class="box box__audio">
+        <input class="box__file" type="file" name="audio" />
+        <label for="file"><strong>Choose audio file</strong><span class="box__dragndrop"> or drag it here</span>.</label>
+      </div>
+      <div class="box box__image">
+        <input class="box__file" type="file" name="image" />
+        <label for="file"><strong>Choose image file (1280x720)</strong><span class="box__dragndrop"> or drag it here</span>.</label>
+      </div>
+    </div>
+    <button class="convert">Convert</button>
+    <div class="progress-container"><div class="progress"><div class="percent"></div></div></div>
+    <script>window.$ = window.jQuery = require('./jquery.min.js');</script>
+    <script type="text/javascript">
+
+    var ipc = require("electron").ipcRenderer;
+
+    var $convert = $(".convert");
+    var $progress = $(".progress");
+    var audioFile = null;
+    var imageFile = null;
+
+    var isAudioEl = function (el) {
+      return $(el).hasClass("box__audio");
+    };
+
+    var showFiles = function (file, el) {
+      var p = file.path;
+
+      if ($(el).hasClass("box__audio")) {
+        audioFile = p;
+      } else {
+        imageFile = p;
+      }
+
+      $("label", el).html(p);
+    };
+
+    $(".box").on("drag dragstart dragend dragover dragenter dragleave drop", function (e) {
+      // preventing the unwanted behaviours
+      e.preventDefault();
+      e.stopPropagation();
+    }).on("dragover dragenter", function () {
+      $(this).addClass("is-dragover");
+    }).on("dragleave dragend drop", function () {
+      $(this).removeClass("is-dragover");
+    }).on("drop", function (e) {
+
+      var files = e.originalEvent.dataTransfer.files;
+      var file = files[0];
+
+      if (isAudioEl(this)) {
+        if (file.name.match(/\.(mp3|wav|aac|m4a|ogg)$/)) {
+          showFiles(file, this);
+        }
+      } else {
+        if (file.name.match(/\.(jpg|jpeg|png|gif)$/)) {
+          showFiles(file, this);
+        }
+      }
+
+      //$form.trigger( 'submit' ); // automatically submit the form on file drop
+    });
+
+    $convert.on("click", function (e) {
+      if (!audioFile || !imageFile) {
+
+        alert("Select both audio and image file!");
+
+        return false;
+      }
+      ipc.send("convert", { audio: audioFile, image: imageFile });
+
+      $(this).prop("disabled", true);
+    });
+
+    ipc.on("progress", function (e, progress) {
+      $progress.css({ width: progress + "%" }).find(".percent").text(parseInt(progress) + "%");
+    })
+
+    ipc.on("cancel", function (e) {
+      $(this).prop("disabled", false);
+    }
+
+    ipc.on("done", function (e, output) {
+      $progress.css({ width: "100%" }).find(".percent").text("100%");
+
+      alert("Conversion complete! Output: " + output);
+      $(this).prop("disabled", false);
+    })
+
+    </script>
+  </body>
+</html>
