@@ -152,18 +152,18 @@
 
     ipc.on("progress", function (e, progress) {
       $progress.css({ width: progress + "%" }).find(".percent").text(parseInt(progress) + "%");
-    })
+    });
 
     ipc.on("cancel", function (e) {
       $(this).prop("disabled", false);
-    }
+    });
 
     ipc.on("done", function (e, output) {
       $progress.css({ width: "100%" }).find(".percent").text("100%");
 
       alert("Conversion complete! Output: " + output);
       $(this).prop("disabled", false);
-    })
+    });
 
     </script>
   </body>
